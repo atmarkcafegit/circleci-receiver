@@ -1,6 +1,6 @@
 [
   {
     "repo": "test-circleci",
-    "channel": "circleci"
+    "channel": "general"
   }
 ]
