@@ -11,7 +11,8 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
 
 app.get('/', function (req, res) {
-    console.log(req.body);
+    var data = req.body.payload;
+    console.log(data.steps[data.steps.length - 1]);
     res.json(req.body);
 });
 
