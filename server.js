@@ -24,7 +24,7 @@ app.post('/', function (req, res) {
         var actions = step.actions;
         _.each(actions, function (action) {
             if (action.status === 'failed') {
-
+                var fs = require('fs');
                 fs.readFile('repo_map.json', 'utf8', function (err, fileData) {
                     if (err) throw err;
                     var repoMapData = JSON.parse(fileData);
