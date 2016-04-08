@@ -29,7 +29,7 @@ app.post('/', function (req, res) {
                     if (err) throw err;
                     var repoMapData = JSON.parse(fileData);
 
-                    fs.readFile('repo_map.json', 'utf8', function (err, fileData) {
+                    fs.readFile('user_map.json', 'utf8', function (err, fileData) {
                         if (err) throw err;
                         var userMapData = JSON.parse(fileData);
 
@@ -45,6 +45,8 @@ app.post('/', function (req, res) {
                             var slackUserName = tempUser.slack;
                             var slackChannel = tempRepo.channel;
                         }
+
+                        console.log(slackChannel);
 
                         http.get(action.output_url, function (res) {
 
@@ -65,7 +67,7 @@ app.post('/', function (req, res) {
                                             "fields": [
                                                 {
                                                     "title": "Error",
-                                                    "value": responseData.message,
+                                                    "value": "xxxxxxxxx",
                                                     "short": false
                                                 }
                                             ]
