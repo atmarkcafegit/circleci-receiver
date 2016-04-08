@@ -20,6 +20,8 @@ app.get('/', function (req, res) {
 app.post('/', function (req, res) {
     var data = req.body.payload;
 
+    console.log(data.all_commit_details);
+
     _.each(data.steps, function (step) {
         var actions = step.actions;
         _.each(actions, function (action) {
@@ -46,8 +48,6 @@ app.post('/', function (req, res) {
                             var slackChannel = tempRepo.channel;
                         }
 
-                        console.log(slackChannel);
-
                         http.get(action.output_url, function (res) {
 
                             var gunzip = zlib.createGunzip();
@@ -59,30 +59,32 @@ app.post('/', function (req, res) {
                             }).on("end", function () {
                                 var responseData = JSON.parse(buffer.join(''));
                                 _.each(responseData, function (res) {
-                                    var sendData = {
-                                        "channel": slackChannel,
-                                        "attachments": [
-                                            {
-                                                "color": "#FF0000",
-                                                "pretext": "Commit user: <@" + slackUserName + '>',
-                                                "fields": [
-                                                    {
-                                                        "title": "Error",
-                                                        "value": res.message,
-                                                        "short": false
-                                                    }
-                                                ]
-                                            }
-                                        ]
-                                    };
+                                    if (res.type === 'out') {
+                                        var sendData = {
+                                            "channel": slackChannel,
+                                            "attachments": [
+                                                {
+                                                    "color": "#FF0000",
+                                                    "pretext": "User: " + data.author_name + "(<@" + slackUserName + ">)\nCommit: \nRepository: ",
+                                                    "fields": [
+                                                        {
+                                                            "title": "Error",
+                                                            "value": res.message,
+                                                            "short": false
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        };
 
-                                    var request = require('request');
-                                    request.post({
-                                        url: 'https://hooks.slack.com/services/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',
-                                        body: JSON.stringify(sendData)
-                                    }, function (error, response, body) {
+                                        var request = require('request');
+                                        request.post({
+                                            url: 'https://hooks.slack.com/services/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',
+                                            body: JSON.stringify(sendData)
+                                        }, function (error, response, body) {
 
-                                    });
+                                        });
+                                    }
                                 });
                             }).on("error", function (e) {
                             })
