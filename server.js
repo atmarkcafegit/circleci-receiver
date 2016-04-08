@@ -17,31 +17,6 @@ app.get('/', function (req, res) {
     res.json(req.body);
 });
 
-//http.get('https://circle-production-action-output.s3.amazonaws.com/a19484ae0573d16dee217075-atmarkcafegit-test-circleci-14-0?AWSAccessKeyId=AKIAIQ65EYQDTMSJK2DQ&Expires=1617847820&Signature=oVgp8ABmRYQKQ2q%2BpVMQIpe0l6k%3D', function (res) {
-//    var gunzip = zlib.createGunzip();
-//    res.pipe(gunzip);
-//    var buffer = [];
-//    gunzip.on('data', function (data) {
-//        buffer.push(data.toString())
-//    }).on("end", function () {
-//        var s = buffer.join('');
-//        var object = JSON.parse(s);
-//        _.each(object, function (item) {
-//            console.log(item.message);
-//        });
-//
-//    }).on("error", function (e) {
-//        console.log(e);
-//    })
-//});
-
-
-var fs = require('fs');
-fs.readFile('repo_map.json', 'utf8', function (err, data) {
-    if (err) throw err;
-    console.log(JSON.parse(data));
-});
-
 app.post('/', function (req, res) {
     var data = req.body.payload;
 
@@ -80,18 +55,17 @@ app.post('/', function (req, res) {
                             gunzip.on('data', function (data) {
                                 buffer.push(data.toString())
                             }).on("end", function () {
-                                var message = buffer.join('');
+                                var responseData = JSON.parse(buffer.join(''));
                                 var sendData = {
-                                    "channel": "circleci",
+                                    "channel": slackChannel,
                                     "attachments": [
                                         {
                                             "color": "#FF0000",
-
-                                            "pretext": "CircleCI Message",
+                                            "pretext": "Commit user: @" + slackUserName,
                                             "fields": [
                                                 {
                                                     "title": "Error",
-                                                    "value": message,
+                                                    "value": responseData.message,
                                                     "short": false
                                                 }
                                             ]
