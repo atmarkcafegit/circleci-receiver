@@ -2,6 +2,7 @@ var express = require('express');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var _ = require('lodash');
 
 var app = express();
 
@@ -16,7 +17,11 @@ app.get('/', function (req, res) {
 
 app.post('/', function (req, res) {
     var data = req.body.payload;
-    console.log(data.steps[data.steps.length - 1]);
+
+    _.each(data.steps, function (step) {
+        console.log(step);
+    });
+
     res.json({
         status: 'OK'
     })
