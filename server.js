@@ -3,10 +3,11 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var _ = require('lodash');
-var request = require('request');
+
+var http = require("https");
 
 var app = express();
-
+var zlib = require("zlib");
 app.use(logger('dev'));
 app.use(bodyParser.json({limit: '500mb'}));
 app.use(bodyParser.urlencoded({extended: false}));
@@ -23,11 +24,17 @@ app.post('/', function (req, res) {
         var actions = step.actions;
         _.each(actions, function (action) {
             if (action.status === 'failed') {
-                request(action.output_url, function (error, response, body) {
-                    if (!error && response.statusCode == 200) {
-                        console.log(body);
-                    }
-                })
+                http.get(action.output_url, function (res) {
+                    var gunzip = zlib.createGunzip();
+                    res.pipe(gunzip);
+                    var buffer = [];
+                    gunzip.on('data', function (data) {
+                        buffer.push(data.toString())
+                    }).on("end", function () {
+                        console.log(buffer.join(''));
+                    }).on("error", function (e) {
+                    })
+                });
             }
         });
     });
