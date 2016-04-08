@@ -11,9 +11,15 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
 
 app.get('/', function (req, res) {
+    res.json(req.body);
+});
+
+app.post('/', function (req, res) {
     var data = req.body.payload;
     console.log(data.steps[data.steps.length - 1]);
-    res.json(req.body);
+    res.json({
+        status: 'OK'
+    })
 });
 
 module.exports = app;
