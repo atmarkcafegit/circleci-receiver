@@ -28,54 +28,64 @@ function sendToSlack(message, callback) {
     });
 }
 
-app.post('/', function (req, res) {
-    var data = req.body.payload;
+function getTitleText(commit_details, userMapData) {
+    var commitList = _.map(_.map(commit_details, function (commit) {
+        var tempUser = _.find(userMapData, function (item) {
+            return item.github === commit.author_name;
+        });
 
-    _.each(data.steps, function (step) {
-        var actions = step.actions;
-        _.each(actions, function (action) {
-            if (action.status === 'failed') {
-                var fs = require('fs');
-                fs.readFile('repo_map.json', 'utf8', function (err, fileData) {
-                    if (err) throw err;
-                    var repoMapData = JSON.parse(fileData);
+        var slackUserName = 'unknow';
+        if (tempUser) {
+            slackUserName = tempUser.slack;
+        }
 
-                    fs.readFile('user_map.json', 'utf8', function (err, fileData) {
-                        if (err) throw err;
-                        var userMapData = JSON.parse(fileData);
+        return {
+            commit_user: commit.committer_name,
+            slack_user: slackUserName,
+            commit_url: commit.commit_url,
+            commit: commit.commit
+        }
+    }), function (item) {
+        return 'Commit <' + item.commit_url + '|' + item.commit.substring(0, 6) + '> by ' +
+            item.commit_user + '(<@' + item.slack_user + '>)';
 
-                        var commitList = _.map(_.map(data.all_commit_details, function (commit) {
-                            var tempUser = _.find(userMapData, function (item) {
-                                return item.github === commit.author_name;
-                            });
+    });
 
-                            var slackUserName = 'unknow';
-                            if (tempUser) {
-                                slackUserName = tempUser.slack;
-                            }
+    return commitList.join('\n');
+}
 
-                            return {
-                                commit_user: commit.committer_name,
-                                slack_user: slackUserName,
-                                commit_url: commit.commit_url,
-                                commit: commit.commit
-                            }
-                        }), function (item) {
-                            return 'commit <' + item.commit_url + '|' + item.commit.substring(0, 6) + '> by ' +
-                                item.commit_user + '(<@' + item.slack_user + '>)';
+var fs = require('fs');
+fs.readFile('repo_map.json', 'utf8', function (err, repoFileData) {
+    if (err) throw err;
 
-                        });
+    fs.readFile('user_map.json', 'utf8', function (err, userFileData) {
+        if (err) throw err;
 
-                        var titleText = commitList.join('\n');
+        var repoMapData = JSON.parse(repoFileData);
+        var userMapData = JSON.parse(userFileData);
 
-                        var tempRepo = _.find(repoMapData, function (item) {
-                            return item.repo === data.reponame;
-                        });
+        app.post('/', function (req, res) {
+            var data = req.body.payload;
 
-                        var slackChannel = 'circleci';
-                        if (tempRepo) {
-                            slackChannel = tempRepo.channel;
-                        }
+            var titleText = getTitleText(data.all_commit_details, userMapData);
+
+            var tempRepo = _.find(repoMapData, function (item) {
+                return item.repo === data.reponame;
+            });
+
+            var slackChannel = 'circleci';
+            if (tempRepo) {
+                slackChannel = tempRepo.channel;
+            }
+
+            _.each(data.steps, function (step) {
+                var actions = step.actions;
+                var failedActions = _.filter(actions, function (action) {
+                    return action.status === 'failed';
+                });
+
+                if (failedActions.length > 0) {
+                    _.each(failedActions, function (action) {
 
                         http.get(action.output_url, function (res) {
                             var gunzip = zlib.createGunzip();
@@ -116,14 +126,34 @@ app.post('/', function (req, res) {
                             })
                         });
                     });
-                });
-            }
+                }
+                else {
+                    var successData = {
+                        "channel": slackChannel,
+                        "attachments": [
+                            {
+                                "color": "#00ff00",
+                                "pretext": titleText,
+                                "fields": [{
+                                    "title": "Success",
+                                    "value": res.message,
+                                    "short": false
+                                }]
+                            }
+                        ]
+                    };
+
+                    sendToSlack(successData, function () {
+                        console.log('sent');
+                    });
+                }
+            });
+
+            res.json({
+                status: 'OK'
+            })
         });
     });
-
-    res.json({
-        status: 'OK'
-    })
 });
 
 module.exports = app;
