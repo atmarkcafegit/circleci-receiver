@@ -114,7 +114,7 @@ fs.readFile('repo_map.json', 'utf8', function (err, repoFileData) {
                                 _.each(responseData, function (res) {
                                     if (res.type === 'out') {
                                         errorData.attachments[0].fields.push({
-                                            "title": "Error",
+                                            "title": "Convention Error",
                                             "value": res.message,
                                             "short": false
                                         });
