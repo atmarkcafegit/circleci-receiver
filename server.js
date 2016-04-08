@@ -64,7 +64,7 @@ app.post('/', function (req, res) {
                                         "attachments": [
                                             {
                                                 "color": "#FF0000",
-                                                "pretext": "Commit user: @" + slackUserName,
+                                                "pretext": "Commit user: <@" + slackUserName + '>',
                                                 "fields": [
                                                     {
                                                         "title": "Error",
