@@ -17,10 +17,19 @@ app.get('/', function (req, res) {
     res.json(req.body);
 });
 
+const SLACK_HOOK_URL = 'https://hooks.slack.com/services/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';
+
+function sendToSlack(message, callback) {
+    require('request').post({
+        url: SLACK_HOOK_URL,
+        body: JSON.stringify(message)
+    }, function () {
+        callback();
+    });
+}
+
 app.post('/', function (req, res) {
     var data = req.body.payload;
-
-    console.log(data.all_commit_details);
 
     _.each(data.steps, function (step) {
         var actions = step.actions;
@@ -35,21 +44,40 @@ app.post('/', function (req, res) {
                         if (err) throw err;
                         var userMapData = JSON.parse(fileData);
 
-                        var tempUser = _.find(userMapData, function (item) {
-                            return item.github === data.author_name;
+                        var commitList = _.map(_.map(data.all_commit_details, function (commit) {
+                            var tempUser = _.find(userMapData, function (item) {
+                                return item.github === commit.author_name;
+                            });
+
+                            var slackUserName = 'unknow';
+                            if (tempUser) {
+                                slackUserName = tempUser.slack;
+                            }
+
+                            return {
+                                commit_user: commit.committer_name,
+                                slack_user: slackUserName,
+                                commit_url: commit.commit_url,
+                                commit: commit.commit
+                            }
+                        }), function (item) {
+                            return 'commit <' + item.commit_url + '|' + item.commit.substring(0, 6) + '> by ' +
+                                item.commit_user + '(<@' + item.slack_user + '>)';
+
                         });
+
+                        var titleText = commitList.join('\n');
 
                         var tempRepo = _.find(repoMapData, function (item) {
                             return item.repo === data.reponame;
                         });
 
-                        if (tempUser) {
-                            var slackUserName = tempUser.slack;
-                            var slackChannel = tempRepo.channel;
+                        var slackChannel = 'circleci';
+                        if (tempRepo) {
+                            slackChannel = tempRepo.channel;
                         }
 
                         http.get(action.output_url, function (res) {
-
                             var gunzip = zlib.createGunzip();
                             res.pipe(gunzip);
                             var buffer = [];
@@ -58,35 +86,33 @@ app.post('/', function (req, res) {
                                 buffer.push(data.toString())
                             }).on("end", function () {
                                 var responseData = JSON.parse(buffer.join(''));
+
+                                var errorData = {
+                                    "channel": slackChannel,
+                                    "attachments": [
+                                        {
+                                            "color": "#FF0000",
+                                            "pretext": titleText,
+                                            "fields": []
+                                        }
+                                    ]
+                                };
+
                                 _.each(responseData, function (res) {
                                     if (res.type === 'out') {
-                                        var sendData = {
-                                            "channel": slackChannel,
-                                            "attachments": [
-                                                {
-                                                    "color": "#FF0000",
-                                                    "pretext": "User: " + data.author_name + "(<@" + slackUserName + ">)\nCommit: \nRepository: ",
-                                                    "fields": [
-                                                        {
-                                                            "title": "Error",
-                                                            "value": res.message,
-                                                            "short": false
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        };
-
-                                        var request = require('request');
-                                        request.post({
-                                            url: 'https://hooks.slack.com/services/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',
-                                            body: JSON.stringify(sendData)
-                                        }, function (error, response, body) {
-
+                                        errorData.attachments[0].fields.push({
+                                            "title": "Error",
+                                            "value": res.message,
+                                            "short": false
                                         });
                                     }
                                 });
+
+                                sendToSlack(errorData, function () {
+                                    console.log('sent');
+                                });
                             }).on("error", function (e) {
+                                console.log(e);
                             })
                         });
                     });
