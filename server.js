@@ -58,31 +58,32 @@ app.post('/', function (req, res) {
                                 buffer.push(data.toString())
                             }).on("end", function () {
                                 var responseData = JSON.parse(buffer.join(''));
-                                var sendData = {
-                                    "channel": slackChannel,
-                                    "attachments": [
-                                        {
-                                            "color": "#FF0000",
-                                            "pretext": "Commit user: @" + slackUserName,
-                                            "fields": [
-                                                {
-                                                    "title": "Error",
-                                                    "value": "xxxxxxxxx",
-                                                    "short": false
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                };
+                                _.each(responseData, function (res) {
+                                    var sendData = {
+                                        "channel": slackChannel,
+                                        "attachments": [
+                                            {
+                                                "color": "#FF0000",
+                                                "pretext": "Commit user: @" + slackUserName,
+                                                "fields": [
+                                                    {
+                                                        "title": "Error",
+                                                        "value": res.message,
+                                                        "short": false
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    };
 
-                                var request = require('request');
-                                request.post({
-                                    url: 'https://hooks.slack.com/services/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',
-                                    body: JSON.stringify(sendData)
-                                }, function (error, response, body) {
-                                    console.log(body);
+                                    var request = require('request');
+                                    request.post({
+                                        url: 'https://hooks.slack.com/services/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',
+                                        body: JSON.stringify(sendData)
+                                    }, function (error, response, body) {
+
+                                    });
                                 });
-
                             }).on("error", function (e) {
                             })
                         });
