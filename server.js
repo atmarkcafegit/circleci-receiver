@@ -78,6 +78,8 @@ fs.readFile('repo_map.json', 'utf8', function (err, repoFileData) {
                 slackChannel = tempRepo.channel;
             }
 
+            var failedFlag = false;
+
             _.each(data.steps, function (step) {
                 var actions = step.actions;
                 var failedActions = _.filter(actions, function (action) {
@@ -85,6 +87,7 @@ fs.readFile('repo_map.json', 'utf8', function (err, repoFileData) {
                 });
 
                 if (failedActions.length > 0) {
+                    failedFlag = true;
                     _.each(failedActions, function (action) {
 
                         http.get(action.output_url, function (res) {
@@ -127,27 +130,28 @@ fs.readFile('repo_map.json', 'utf8', function (err, repoFileData) {
                         });
                     });
                 }
-                else {
-                    var successData = {
-                        "channel": slackChannel,
-                        "attachments": [
-                            {
-                                "color": "#00ff00",
-                                "pretext": titleText,
-                                "fields": [{
-                                    "title": "Success",
-                                    "value": res.message,
-                                    "short": false
-                                }]
-                            }
-                        ]
-                    };
-
-                    sendToSlack(successData, function () {
-                        console.log('sent');
-                    });
-                }
             });
+
+            if (!failedFlag) {
+                var successData = {
+                    "channel": slackChannel,
+                    "attachments": [
+                        {
+                            "color": "#00ff00",
+                            "pretext": titleText,
+                            "fields": [{
+                                "title": "Success",
+                                "value": res.message,
+                                "short": false
+                            }]
+                        }
+                    ]
+                };
+
+                sendToSlack(successData, function () {
+                    console.log('sent');
+                });
+            }
 
             res.json({
                 status: 'OK'
