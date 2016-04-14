@@ -28,7 +28,7 @@ function sendToSlack(message, callback) {
     });
 }
 
-function getTitleText(commit_details, userMapData) {
+function getTitleText(commit_details, userMapData, isError) {
     var commitList = _.map(_.map(commit_details, function (commit) {
         var tempUser = _.find(userMapData, function (item) {
             return item.github === commit.author_name;
@@ -46,8 +46,8 @@ function getTitleText(commit_details, userMapData) {
             commit: commit.commit
         }
     }), function (item) {
-        return 'Commit <' + item.commit_url + '|' + item.commit.substring(0, 6) + '> by ' +
-            item.commit_user + '(<@' + item.slack_user + '>)';
+        return 'Commit <' + item.commit_url + '|' + item.commit.substring(0, 7) + '> by ' +
+            item.commit_user + (isError ? '(<@' + item.slack_user + '>)' : '');
 
     });
 
@@ -66,8 +66,6 @@ fs.readFile('repo_map.json', 'utf8', function (err, repoFileData) {
 
         app.post('/', function (req, res) {
             var data = req.body.payload;
-
-            var titleText = getTitleText(data.all_commit_details, userMapData);
 
             var tempRepo = _.find(repoMapData, function (item) {
                 return item.repo === data.reponame;
@@ -99,6 +97,8 @@ fs.readFile('repo_map.json', 'utf8', function (err, repoFileData) {
                                 buffer.push(data.toString())
                             }).on("end", function () {
                                 var responseData = JSON.parse(buffer.join(''));
+
+                                var titleText = getTitleText(data.all_commit_details, userMapData, true);
 
                                 var errorData = {
                                     "channel": slackChannel,
@@ -133,6 +133,8 @@ fs.readFile('repo_map.json', 'utf8', function (err, repoFileData) {
             });
 
             if (!failedFlag) {
+                var titleText = getTitleText(data.all_commit_details, userMapData, false);
+
                 var successData = {
                     "channel": slackChannel,
                     "attachments": [
