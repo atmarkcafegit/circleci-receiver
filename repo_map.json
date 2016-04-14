@@ -2,5 +2,9 @@
   {
     "repo": "test-circleci",
     "channel": "circleci"
+  },
+  {
+    "repo": "version2-gorilla",
+    "channel": "gorilla"
   }
 ]
